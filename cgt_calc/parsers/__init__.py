@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Final
 
 from cgt_calc.const import DEFAULT_INITIAL_PRICES_FILE
 from cgt_calc.exceptions import UnexpectedColumnCountError
+from cgt_calc.model import ActionType
 from cgt_calc.resources import RESOURCES_PACKAGE
 
 from .mssb import read_mssb_transactions
@@ -93,7 +94,7 @@ def read_broker_transactions(
     else:
         print("INFO: No raw file provided")
 
-    transactions.sort(key=lambda k: k.date)
+    transactions.sort(key=sort_transactions)
     return transactions
 
 
@@ -120,3 +121,14 @@ def read_initial_prices(
             initial_prices[date_index] = {}
         initial_prices[date_index][entry.symbol] = entry.price
     return initial_prices
+
+
+def sort_transactions(transaction: BrokerTransaction) -> str:
+    """Sorts transactions by date and type.
+
+    (so if shares vest and sell on the same day, the vest is always processed 1st).
+    """
+    priority = "1"
+    if transaction.action == ActionType.SELL:
+        priority = "2"
+    return transaction.date.strftime("%Y-%m-%d") + priority
